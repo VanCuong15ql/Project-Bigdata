@@ -18,6 +18,8 @@ schema_raw= StructType([
     StructField("mo_ta_cong_viec", StringType(), False),
     StructField("yeu_cau_cong_viec", StringType(), False),
     StructField("quyen_loi", StringType(), False),
+    StructField("dia_diem_lam_viec", StringType(), False),
+    StructField("thoi_gian_lam_viec", StringType(), False),      
     StructField("cach_thuc_ung_tuyen", StringType(), False)
 ])
 
@@ -46,7 +48,7 @@ if __name__ == "__main__":
     spark_conn = create_spark_connection()
     if spark_conn is not None:
         df_raw = spark_conn.read.schema(schema_raw).json("hdfs://namenode:9000/data/raw/*.json")
-
+        df_raw.printSchema()
         extracted_recruit_df = df_raw.select(df_raw["name"].alias("CompanyName"),
             udfs.extract_framework_plattform("mo_ta_cong_viec","yeu_cau_cong_viec").alias("FrameworkPlattforms"),
             udfs.extract_language("mo_ta_cong_viec","yeu_cau_cong_viec").alias("Languages"),

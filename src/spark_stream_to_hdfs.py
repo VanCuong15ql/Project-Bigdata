@@ -47,6 +47,8 @@ def create_selection_df_from_kafka(spark_df):
         StructField("mo_ta_cong_viec", StringType(), False),
         StructField("yeu_cau_cong_viec", StringType(), False),
         StructField("quyen_loi", StringType(), False),
+        StructField("dia_diem_lam_viec", StringType(), False),
+        StructField("thoi_gian_lam_viec", StringType(), False),      
         StructField("cach_thuc_ung_tuyen", StringType(), False)
     ])
 
@@ -71,6 +73,10 @@ if __name__ == "__main__":
                                 .option('checkpointLocation', '/tmp/checkpoint')
                                 .option('keyspace', 'spark_streams')
                                 .option('path', 'hdfs://namenode:9000/data/raw/')
+                                .start())
+            # print data console
+            console_query = (selection_df.writeStream.format("console")
+                                .option("truncate", "false")
                                 .start())
             streaming_query.awaitTermination()
             

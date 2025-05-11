@@ -14,3 +14,6 @@ docker-compose run --rm airflow-webserver airflow db init
 docker-compose down
 docker-compose up -d
 
+docker system prune -a
+docker exec -it broker kafka-console-consumer --bootstrap-server broker:29092 --topic recruitment_information --from-beginning
+

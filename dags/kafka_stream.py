@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 from selenium.webdriver.common.by import By
 import json
 from selenium.webdriver.common.keys import Keys
+import re
 
 # -------------------CRAWL DATA-----------------------------------------------------------
 from bs4 import BeautifulSoup
@@ -63,6 +64,31 @@ def crawl_company_links(**kwargs):
     finally:
         driver.quit()
     kwargs['ti'].xcom_push(key='company_links', value=company_links)
+def extract_sections(text):
+    # Định nghĩa các mục cần tách
+    headers = [
+        "Mô tả công việc",
+        "Yêu cầu ứng viên",
+        "Quyền lợi",
+        "Địa điểm làm việc",
+        "Thời gian làm việc",
+        "Cách thức ứng tuyển"
+    ]
+
+    # Tạo pattern để chia nhỏ theo tiêu đề
+    pattern = "|".join(re.escape(h) for h in headers)
+    
+    # Tách đoạn văn theo tiêu đề
+    splits = re.split(f"({pattern})", text)
+
+    # Kết hợp tiêu đề + nội dung liền sau
+    result = {}
+    for i in range(1, len(splits) - 1, 2):
+        header = splits[i].strip()
+        content = splits[i + 1].strip()
+        result[header] = content
+
+    return result
 
 # task 3: crawl data company
 def crawl_company_data(**kwargs):
@@ -85,13 +111,19 @@ def crawl_company_data(**kwargs):
             try:
                 job_description_element = driver.find_element(By.CSS_SELECTOR, "div.job-description")
                 job_description = job_description_element.text.strip()
+                sections = extract_sections(job_description)
             except Exception as e:
                 print("Error: " + str(e))
                 job_description = "N/A"
             company_data={
                 'id':time.time(),
                 'name': name,
-                'job_description': job_description,
+                'mo_ta_cong_viec': sections.get("Mô tả công việc", "N/A"),
+                'yeu_cau_cong_viec': sections.get("Yêu cầu ứng viên", "N/A"),
+                'quyen_loi': sections.get("Quyền lợi", "N/A"),
+                'dia_diem_lam_viec': sections.get("Địa điểm làm việc", "N/A"),
+                'thoi_gian_lam_viec': sections.get("Thời gian làm việc", "N/A"),
+                'cach_thuc_ung_tuyen': sections.get("Cách thức ứng tuyển", "N/A")
             }
             company_data_list.append(company_data)
             break
@@ -122,6 +154,22 @@ default_args = {
     'retry_delay': timedelta(minutes = 2)
 }
 
+# task for test
+def send_to_kafka_for_test():
+    from kafka import KafkaProducer
+    producer = KafkaProducer(bootstrap_servers=['broker:29092'], max_block_ms=5000)
+    data = {
+        'id': time.time(),
+        'name': 'test',
+        'mo_ta_cong_viec': 'test',
+        'yeu_cau_cong_viec': 'test',
+        'quyen_loi': 'test',
+        'dia_diem_lam_viec': 'test',
+        'thoi_gian_lam_viec': 'test',
+        'cach_thuc_ung_tuyen': 'test'
+    }
+    producer.send('recruitment_information', json.dumps(data).encode('utf-8'))
+    time.sleep(3)
 
 with DAG('stream_recruitment_information',
          default_args=default_args,
@@ -129,25 +177,32 @@ with DAG('stream_recruitment_information',
          schedule_interval='@daily',
          catchup=False) as dag:
 
-    crawl_page_links_task= PythonOperator(
-        task_id='crawl_page_links',
-        python_callable=crawl_page_links,
-        provide_context=True
-    )
-    crawl_company_links_task= PythonOperator(
-        task_id='crawl_company_links',
-        python_callable=crawl_company_links,
-        provide_context=True
-    )
-    crawl_company_data_task= PythonOperator(
-        task_id='crawl_company_data',
-        python_callable=crawl_company_data,
-        provide_context=True
-    )
-    send_to_kafka_task= PythonOperator(
-        task_id='send_to_kafka',
-        python_callable=send_to_kafka,
-        provide_context=True
-    )
+    # crawl_page_links_task= PythonOperator(
+    #     task_id='crawl_page_links',
+    #     python_callable=crawl_page_links,
+    #     provide_context=True
+    # )
+    # crawl_company_links_task= PythonOperator(
+    #     task_id='crawl_company_links',
+    #     python_callable=crawl_company_links,
+    #     provide_context=True
+    # )
+    # crawl_company_data_task= PythonOperator(
+    #     task_id='crawl_company_data',
+    #     python_callable=crawl_company_data,
+    #     provide_context=True
+    # )
+    # send_to_kafka_task= PythonOperator(
+    #     task_id='send_to_kafka',
+    #     python_callable=send_to_kafka,
+    #     provide_context=True
+    # )
 
-    crawl_page_links_task >> crawl_company_links_task>> crawl_company_data_task>> send_to_kafka_task
+    # crawl_page_links_task >> crawl_company_links_task>> crawl_company_data_task >> send_to_kafka_task
+
+    send_to_kafka_for_test= PythonOperator(
+        task_id='send_to_kafka',
+        python_callable=send_to_kafka_for_test,
+        provide_context=True
+    )
+    send_to_kafka_for_test
