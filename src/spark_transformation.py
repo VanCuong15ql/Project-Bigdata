@@ -30,7 +30,8 @@ def create_spark_connection():
         s_conn = SparkSession.builder \
             .appName('Spark_transformation') \
             .master("spark://spark-master:7077")\
-            .config('spark.jars.packages', "org.apache.spark:spark-sql-kafka-0-10_2.12:3.0.0")\
+            .config('spark.jars.packages', "org.apache.spark:spark-sql-kafka-0-10_2.12:3.0.0,"
+                    "org.elasticsearch:elasticsearch-spark-30_2.12:8.9.0")\
             .config("spark.hadoop.fs.defaultFS", "hdfs://namenode:9000") \
             .getOrCreate()
         
@@ -57,9 +58,23 @@ if __name__ == "__main__":
             udfs.normalize_salary("quyen_loi").alias("Salaries")
             )
         extracted_recruit_df.cache()
-
+        print("extracted_recruit_df")
+        extracted_recruit_df.printSchema()
         ##========save extracted_recruit_df to hdfs========================
         extracted_recruit_df.write\
             .format("json")\
             .mode("overwrite")\
             .save("hdfs://namenode:9000/data/extracted_data/recruit.json")
+        print("data send to hdfs")
+        ##========save extracted_recruit_df to elasticsearch========================
+        es_config ={
+            "es.nodes": "elasticsearch",
+            "es.port": "9200",
+            "es.resource":"recruitment_data",
+        }
+        extracted_recruit_df.coalesce(1).write \
+            .format("org.elasticsearch.spark.sql") \
+            .options(**es_config) \
+            .mode("overwrite") \
+            .save()
+        print("data send to elasticsearch")
