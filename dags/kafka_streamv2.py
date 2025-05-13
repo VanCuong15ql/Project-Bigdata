@@ -22,6 +22,7 @@ fix=1
 
 # https://www.vietnamworks.com/viec-lam?q=it-phan-mem&l=24&page=1&sorting=relevant
 
+# task 2,3,4 là các task cần thay đổi để phù hợp với trang trên
 def crawl_page_links(**kwargs):
     links=[]
     for i in range(START_PAGE, END_PAGE + 1):
@@ -127,6 +128,7 @@ def crawl_company_data(**kwargs):
                 'cach_thuc_ung_tuyen': sections.get("Cách thức ứng tuyển", "N/A")
             }
             company_data_list.append(company_data)
+            # i put break here to test, if you want run project, u need delete "break"
             break
             
     except Exception as e:

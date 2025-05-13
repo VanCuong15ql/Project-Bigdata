@@ -126,6 +126,7 @@ def crawl_company_data(**kwargs):
                 'cach_thuc_ung_tuyen': sections.get("Cách thức ứng tuyển", "N/A")
             }
             company_data_list.append(company_data)
+            # i put break here to test, if you want run project, u need delete "break"
             break
             
     except Exception as e:
