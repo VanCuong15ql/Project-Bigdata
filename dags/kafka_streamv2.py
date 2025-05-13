@@ -19,13 +19,14 @@ fix=1
 
 
 # task 1: crawl link page
-#examble links https://www.vietnamworks.com/viec-lam-tot-nhat?page=0
-# examble links https://www.topcv.vn/tim-viec-lam-software-engineering-cr257cb258?company_field=0&exp=0&page=1&salary=0&sort=up_top
+
+# https://www.vietnamworks.com/viec-lam?q=it-phan-mem&l=24&page=1&sorting=relevant
+
 def crawl_page_links(**kwargs):
     links=[]
     for i in range(START_PAGE, END_PAGE + 1):
         links.append(
-            "https://www.topcv.vn/tim-viec-lam-software-engineering-cr257cb258?company_field=0&exp=0&page=" + str(i) + "&salary=0&sort=up_top"
+            "https://www.vietnamworks.com/viec-lam?q=it-phan-mem&l=24&page=" + str(i) + "&sorting=relevant"
         )
     print("links: " + str(links))
     kwargs['ti'].xcom_push(key='page_links', value=links)
@@ -149,13 +150,13 @@ def send_to_kafka(**kwargs):
 
 default_args = {
     'owner': 'vancuong',
-    'start_date': datetime(2024, 12, 22, 10, 00),
+    'start_date': datetime(2024, 5 , 12 ),
     'retries': 5,
     'retry_delay': timedelta(minutes = 2)
 }
 
 
-with DAG('stream_recruitment_information',
+with DAG('stream_recruitment_information_v2',
          default_args=default_args,
          description = "This is kafka stream task.",
          schedule_interval='@daily',
