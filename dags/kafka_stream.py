@@ -118,6 +118,7 @@ def crawl_company_data(**kwargs):
             company_data={
                 'id':time.time(),
                 'name': name,
+                'chuyen_mon': "N/A",
                 'mo_ta_cong_viec': sections.get("Mô tả công việc", "N/A"),
                 'yeu_cau_cong_viec': sections.get("Yêu cầu ứng viên", "N/A"),
                 'quyen_loi': sections.get("Quyền lợi", "N/A"),
