@@ -1,6 +1,7 @@
 # coding=utf-8
 import pyspark
 from pyspark.sql.functions import *
+from pyspark.sql.functions import trim, regexp_replace, col
 from pyspark.sql.types import *
 from pyspark import SparkConf, SparkContext
 from pyspark.sql import SparkSession
@@ -15,6 +16,7 @@ import udfs
 schema_raw= StructType([
     StructField("id", StringType(), False),
     StructField("name", StringType(), False),
+    structField("chuyen_mon", StringType(), False),
     StructField("mo_ta_cong_viec", StringType(), False),
     StructField("yeu_cau_cong_viec", StringType(), False),
     StructField("quyen_loi", StringType(), False),
@@ -33,6 +35,9 @@ def create_spark_connection():
             .config('spark.jars.packages', "org.apache.spark:spark-sql-kafka-0-10_2.12:3.0.0,"
                     "org.elasticsearch:elasticsearch-spark-30_2.12:8.9.0")\
             .config("spark.hadoop.fs.defaultFS", "hdfs://namenode:9000") \
+            .config("spark.hadoop.google.cloud.auth.service.account.json.keyfile", "/src/key.json") \
+            .config("spark.hadoop.fs.gs.impl", "com.google.cloud.hadoop.fs.gcs.GoogleHadoopFileSystem") \
+            .config("spark.hadoop.fs.AbstractFileSystem.gs.impl", "com.google.cloud.hadoop.fs.gcs.GoogleHadoopFS") \
             .getOrCreate()
         
         s_conn.sparkContext.setLogLevel("ERROR")
@@ -50,31 +55,14 @@ if __name__ == "__main__":
     if spark_conn is not None:
         df_raw = spark_conn.read.schema(schema_raw).json("hdfs://namenode:9000/data/raw/*.json")
         df_raw.printSchema()
-        extracted_recruit_df = df_raw.select(df_raw["name"].alias("CompanyName"),
-            udfs.extract_framework_plattform("mo_ta_cong_viec","yeu_cau_cong_viec").alias("FrameworkPlattforms"),
-            udfs.extract_language("mo_ta_cong_viec","yeu_cau_cong_viec").alias("Languages"),
-            udfs.extract_design_pattern("mo_ta_cong_viec","yeu_cau_cong_viec").alias("DesignPatterns"),
-            udfs.extract_knowledge("mo_ta_cong_viec","yeu_cau_cong_viec").alias("Knowledges"),
-            udfs.normalize_salary("quyen_loi").alias("Salaries")
-            )
-        extracted_recruit_df.cache()
-        print("extracted_recruit_df")
-        extracted_recruit_df.printSchema()
-        ##========save extracted_recruit_df to hdfs========================
-        # extracted_recruit_df.write\
-        #     .format("json")\
-        #     .mode("overwrite")\
-        #     .save("hdfs://namenode:9000/data/extracted_data/recruit.json")
-        # print("data send to hdfs")
-        ##========save extracted_recruit_df to elasticsearch========================
-        es_config ={
-            "es.nodes": "elasticsearch",
-            "es.port": "9200",
-            "es.resource":"recruitment_data",
-        }
-        extracted_recruit_df.coalesce(1).write \
-            .format("org.elasticsearch.spark.sql") \
-            .options(**es_config) \
+        
+        df_clean = df_raw.select(
+            trim(regexp_replace(col("mo_ta_cong_viec"), "<[^>]*>", "")).alias("description"),
+            trim(regexp_replace(col("chuyen_mon"), "<[^>]*>", "")).alias("expertise"),
+        )
+        df_clean.write \
+            .coalesce(1) \
             .mode("overwrite") \
-            .save()
-        print("data send to elasticsearch")
+            .json("gs://my-job-data-bucket/cleaned/job_data_clean/")
+        
+  

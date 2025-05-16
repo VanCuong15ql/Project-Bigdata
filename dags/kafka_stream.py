@@ -65,7 +65,7 @@ def crawl_company_links(**kwargs):
         driver.quit()
     kwargs['ti'].xcom_push(key='company_links', value=company_links)
 def extract_sections(text):
-    # Định nghĩa các mục cần tách
+    
     headers = [
         "Mô tả công việc",
         "Yêu cầu ứng viên",
@@ -75,13 +75,13 @@ def extract_sections(text):
         "Cách thức ứng tuyển"
     ]
 
-    # Tạo pattern để chia nhỏ theo tiêu đề
+    
     pattern = "|".join(re.escape(h) for h in headers)
     
-    # Tách đoạn văn theo tiêu đề
+    
     splits = re.split(f"({pattern})", text)
 
-    # Kết hợp tiêu đề + nội dung liền sau
+    
     result = {}
     for i in range(1, len(splits) - 1, 2):
         header = splits[i].strip()
@@ -115,10 +115,22 @@ def crawl_company_data(**kwargs):
             except Exception as e:
                 print("Error: " + str(e))
                 job_description = "N/A"
+            
+            # get data chuyen mon from <a> class="item search-from-tag link"
+            try:
+                chuyen_mon_element = driver.find_elements(By.CSS_SELECTOR, "a.item.search-from-tag.link")
+                # get text first element
+                chuyen_mon = chuyen_mon_element[0].text.strip()
+                # example data chuyen_mon: "Chuyên môn Software Engineer" -> "Software Engineer"
+                chuyen_mon = chuyen_mon.replace("Chuyên môn ", "")
+            except Exception as e:
+                print("Error: " + str(e))
+                chuyen_mon = "N/A"
+
             company_data={
                 'id':time.time(),
                 'name': name,
-                'chuyen_mon': "N/A",
+                'chuyen_mon': chuyen_mon,
                 'mo_ta_cong_viec': sections.get("Mô tả công việc", "N/A"),
                 'yeu_cau_cong_viec': sections.get("Yêu cầu ứng viên", "N/A"),
                 'quyen_loi': sections.get("Quyền lợi", "N/A"),
@@ -137,7 +149,7 @@ def crawl_company_data(**kwargs):
     kwargs['ti'].xcom_push(key='company_data', value=company_data_list)
 
 
-# Task 4: Gửi dữ liệu đến Kafka
+# Task 4: send data to kafka
 def send_to_kafka(**kwargs):
     from kafka import KafkaProducer
     producer = KafkaProducer(bootstrap_servers=['broker:29092'], max_block_ms=5000)
