@@ -3,3 +3,8 @@ __pycache__
 lab6
 promotion.txt
 src/*.json
+crawl.ipynb
+crawldata.py
+crawldata2.py
+crawldata3.py
+skill_extractor.py

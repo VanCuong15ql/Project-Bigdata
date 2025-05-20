@@ -30,6 +30,7 @@ def connect_to_kafka(spark_conn):
             .format('kafka') \
             .option('kafka.bootstrap.servers', 'broker:29092') \
             .option('subscribe', 'recruitment_information') \
+            .option('startingOffsets', 'earliest') \
             .load()
         logging.info("kafka dataframe created successfully")
     except Exception as e:
@@ -44,6 +45,7 @@ def create_selection_df_from_kafka(spark_df):
     schema = StructType([
         StructField("id", StringType(), False),
         StructField("name", StringType(), False),
+        StructField("chuyen_mon", StringType(), False),
         StructField("mo_ta_cong_viec", StringType(), False),
         StructField("yeu_cau_cong_viec", StringType(), False),
         StructField("quyen_loi", StringType(), False),
@@ -76,7 +78,7 @@ if __name__ == "__main__":
                                 .start())
             # print data console
             console_query = (selection_df.writeStream.format("console")
-                                .option("truncate", "false")
+                                .option("truncate", "true")
                                 .start())
             streaming_query.awaitTermination()
             

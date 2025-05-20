@@ -14,8 +14,8 @@ from bs4 import BeautifulSoup
 
 TIME_SLEEP = 6
 TIME_STREAM = 50
-START_PAGE=63
-END_PAGE=65
+START_PAGE=68
+END_PAGE=70
 fix=1
 
 
@@ -239,7 +239,7 @@ default_args = {
 }
 
 
-with DAG('stream_recruitment_information',
+with DAG('stream_recruitment_information_thread3',
          default_args=default_args,
          description = "This is kafka stream task.",
          schedule_interval='@daily',

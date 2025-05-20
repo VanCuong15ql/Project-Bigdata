@@ -11,6 +11,7 @@ def send_to_kafka_for_test():
     data = {
         'id': time.time(),
         'name': 'test',
+        'chuyen_mon': 'test',
         'mo_ta_cong_viec': 'test',
         'yeu_cau_cong_viec': 'test',
         'quyen_loi': 'test',

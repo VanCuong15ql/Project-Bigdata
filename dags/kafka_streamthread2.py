@@ -14,8 +14,8 @@ from bs4 import BeautifulSoup
 
 TIME_SLEEP = 6
 TIME_STREAM = 50
-START_PAGE=63
-END_PAGE=65
+START_PAGE=68
+END_PAGE=70
 fix=1
 
 
@@ -167,6 +167,7 @@ def crawl_and_send_to_kafka(**kwargs):
         page_links = kwargs['ti'].xcom_pull(key='page_links', task_ids='crawl_page_links')
         producer = KafkaProducer(bootstrap_servers=['broker:29092'], max_block_ms=5000)
         for link in page_links:
+           
            print("link: " + str(link))
            driver = get_webdriver()
            driver.get(link)
@@ -239,7 +240,7 @@ default_args = {
 }
 
 
-with DAG('stream_recruitment_information',
+with DAG('stream_recruitment_information_thread2',
          default_args=default_args,
          description = "This is kafka stream task.",
          schedule_interval='@daily',

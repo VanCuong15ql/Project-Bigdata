@@ -206,6 +206,11 @@ services:
       - ${AIRFLOW_PROJ_DIR:-.}/dags:/opt/airflow/dags
       - ${AIRFLOW_PROJ_DIR:-.}/logs:/opt/airflow/logs
       - ${AIRFLOW_PROJ_DIR:-.}/plugins:/opt/airflow/plugins
+    # deploy:
+    #   resources:
+    #     limits:
+    #       cpus: '0.25'
+    #       memory: 512M
     networks:
       - confluent
     
@@ -228,6 +233,11 @@ services:
       - ${AIRFLOW_PROJ_DIR:-.}/dags:/opt/airflow/dags
       - ${AIRFLOW_PROJ_DIR:-.}/logs:/opt/airflow/logs
       - ${AIRFLOW_PROJ_DIR:-.}/plugins:/opt/airflow/plugins
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
     networks:
       - confluent
 
@@ -253,6 +263,11 @@ services:
       <<: *airflow-common-depends-on
       airflow-init:
         condition: service_completed_successfully
+    # deploy:
+    #   resources:
+    #     limits:
+    #       cpus: '0.25'
+    #       memory: 512M
     networks:
       - confluent
 
@@ -270,6 +285,11 @@ services:
       <<: *airflow-common-depends-on
       airflow-init:
         condition: service_completed_successfully
+    # deploy:
+    #   resources:
+    #     limits:
+    #       cpus: '0.1'
+    #       memory: 128M
     networks:
       - confluent
 
@@ -503,24 +523,28 @@ services:
       - "SPARK_MASTER=spark://spark-master:7077"
       - CORE_CONF_fs_defaultFS=hdfs://namenode:9000
       - "SPARK_WORKER_CORES=1"  # Thay đổi số core
-      - "SPARK_WORKER_MEMORY=1g"  # Thay đổi dung lượng RAM
+      - "SPARK_WORKER_MEMORY=1G"  # Thay đổi dung lượng RAM
+    volumes:
+      - ./src:/src
     networks:
       - confluent
 
-  spark-worker-2:
-    image: bde2020/spark-worker:3.0.0-hadoop3.2
-    container_name: spark-worker-2
-    depends_on:
-      - spark-master
-    ports:
-      - "8085:8081"
-    environment:
-      - "SPARK_MASTER=spark://spark-master:7077"
-      - CORE_CONF_fs_defaultFS=hdfs://namenode:9000
-      - "SPARK_WORKER_CORES=1"  # Thay đổi số core
-      - "SPARK_WORKER_MEMORY=0.5g"  # Thay đổi dung lượng RAM
-    networks:
-      - confluent
+  # spark-worker-2:
+  #   image: bde2020/spark-worker:3.0.0-hadoop3.2
+  #   container_name: spark-worker-2
+  #   depends_on:
+  #     - spark-master
+  #   ports:
+  #     - "8085:8081"
+  #   environment:
+  #     - "SPARK_MASTER=spark://spark-master:7077"
+  #     - CORE_CONF_fs_defaultFS=hdfs://namenode:9000
+  #     - "SPARK_WORKER_CORES=1"  # Thay đổi số core
+  #     - "SPARK_WORKER_MEMORY=0.5g"  # Thay đổi dung lượng RAM
+  #   volumes:
+  #     - ./src:/src
+  #   networks:
+  #     - confluent
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.9.0
     container_name: elasticsearch

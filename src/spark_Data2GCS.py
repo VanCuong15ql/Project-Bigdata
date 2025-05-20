@@ -16,7 +16,7 @@ import udfs
 schema_raw= StructType([
     StructField("id", StringType(), False),
     StructField("name", StringType(), False),
-    structField("chuyen_mon", StringType(), False),
+    StructField("chuyen_mon", StringType(), False),
     StructField("mo_ta_cong_viec", StringType(), False),
     StructField("yeu_cau_cong_viec", StringType(), False),
     StructField("quyen_loi", StringType(), False),
@@ -32,12 +32,7 @@ def create_spark_connection():
         s_conn = SparkSession.builder \
             .appName('Spark_transformation') \
             .master("spark://spark-master:7077")\
-            .config('spark.jars.packages', "org.apache.spark:spark-sql-kafka-0-10_2.12:3.0.0,"
-                    "org.elasticsearch:elasticsearch-spark-30_2.12:8.9.0")\
             .config("spark.hadoop.fs.defaultFS", "hdfs://namenode:9000") \
-            .config("spark.hadoop.google.cloud.auth.service.account.json.keyfile", "/src/key.json") \
-            .config("spark.hadoop.fs.gs.impl", "com.google.cloud.hadoop.fs.gcs.GoogleHadoopFileSystem") \
-            .config("spark.hadoop.fs.AbstractFileSystem.gs.impl", "com.google.cloud.hadoop.fs.gcs.GoogleHadoopFS") \
             .getOrCreate()
         
         s_conn.sparkContext.setLogLevel("ERROR")
@@ -55,14 +50,18 @@ if __name__ == "__main__":
     if spark_conn is not None:
         df_raw = spark_conn.read.schema(schema_raw).json("hdfs://namenode:9000/data/raw/*.json")
         df_raw.printSchema()
-        
+        df_raw.show(truncate=False)
         df_clean = df_raw.select(
             trim(regexp_replace(col("mo_ta_cong_viec"), "<[^>]*>", "")).alias("description"),
             trim(regexp_replace(col("chuyen_mon"), "<[^>]*>", "")).alias("expertise"),
         )
-        df_clean.write \
-            .coalesce(1) \
-            .mode("overwrite") \
-            .json("gs://my-job-data-bucket/cleaned/job_data_clean/")
+        # show data
+        df_clean.cache()
+        df_clean.show(truncate=False)
+        print(df_clean.count())
+        # write to hdfs, format json
+        df_clean.coalesce(1).write.mode("overwrite").json("hdfs://namenode:9000/data/cleaned/")
+         
+
         
   
