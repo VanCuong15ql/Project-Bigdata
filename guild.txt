@@ -1,6 +1,6 @@
 docker exec -it spark-master bash
 spark/bin/spark-submit --master spark://spark-master:7077 --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.0.0 src/spark_stream_to_hdfs.py
-spark/bin/spark-submit --master spark://spark-master:7077  src/spark_Data2GCS.py
+spark/bin/spark-submit --master spark://spark-master:7077  src/spark_CleanData.py
 spark/bin/spark-submit --master spark://spark-master:7077 --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.0.0,org.elasticsearch:elasticsearch-spark-30_2.12:8.9.0 src/spark_transformation.py
 export PYSPARK_PYTHON=python3
 spark/bin/spark-submit --master spark://spark-master:7077 --packages com.datastax.spark:spark-cassandra-connector_2.12:3.0.0,org.apache.spark:spark-sql-kafka-0-10_2.12:3.0.0 src/spark_stream.py

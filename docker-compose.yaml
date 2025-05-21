@@ -431,6 +431,7 @@ services:
     volumes:
       - ../storage/hadoop/namenode:/hadoop/dfs/name
       - ./lab6:/lab6
+      - ./example_data:/example_data
     networks:
       - confluent
 

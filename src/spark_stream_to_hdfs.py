@@ -74,7 +74,7 @@ if __name__ == "__main__":
             streaming_query = (selection_df.writeStream.format("json")
                                 .option('checkpointLocation', '/tmp/checkpoint')
                                 .option('keyspace', 'spark_streams')
-                                .option('path', 'hdfs://namenode:9000/data/raw/')
+                                .option('path', 'hdfs://namenode:9000/data/test/')
                                 .start())
             # print data console
             console_query = (selection_df.writeStream.format("console")

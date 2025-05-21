@@ -12,10 +12,10 @@ from kafka import KafkaProducer
 # -------------------CRAWL DATA-----------------------------------------------------------
 from bs4 import BeautifulSoup
 
-TIME_SLEEP = 6
+TIME_SLEEP = 3
 TIME_STREAM = 50
-START_PAGE=68
-END_PAGE=70
+START_PAGE=71
+END_PAGE=75
 fix=1
 
 
@@ -60,8 +60,10 @@ def crawl_company_links(**kwargs):
             titles = driver.find_elements(By.CSS_SELECTOR, "h3.title a")
             for title in titles:
                 company_links.append(title.get_attribute("href"))  
+            driver.quit()
     except Exception as e:
         print("Error: " + str(e))
+        driver.quit()
     finally:
         driver.quit()
     kwargs['ti'].xcom_push(key='company_links', value=company_links)
@@ -139,10 +141,12 @@ def crawl_company_data(**kwargs):
                 'cach_thuc_ung_tuyen': sections.get("Cách thức ứng tuyển", "N/A")
             }
             company_data_list.append(company_data)
+            driver.quit()
             # i put break here to test, if you want run project, u need delete "break"
             # break
             
     except Exception as e:
+        driver.quit()
         print("Error: " + str(e))
     finally:
         driver.quit()
@@ -167,6 +171,7 @@ def crawl_and_send_to_kafka(**kwargs):
         page_links = kwargs['ti'].xcom_pull(key='page_links', task_ids='crawl_page_links')
         producer = KafkaProducer(bootstrap_servers=['broker:29092'], max_block_ms=5000)
         for link in page_links:
+           
            print("link: " + str(link))
            driver = get_webdriver()
            driver.get(link)
@@ -250,26 +255,26 @@ with DAG('stream_recruitment_information_thread3',
         python_callable=crawl_page_links,
         provide_context=True
     )
-    # crawl_company_links_task= PythonOperator(
-    #     task_id='crawl_company_links',
-    #     python_callable=crawl_company_links,
-    #     provide_context=True
-    # )
-    # crawl_company_data_task= PythonOperator(
-    #     task_id='crawl_company_data',
-    #     python_callable=crawl_company_data,
-    #     provide_context=True
-    # )
-    # send_to_kafka_task= PythonOperator(
-    #     task_id='send_to_kafka',
-    #     python_callable=send_to_kafka,
-    #     provide_context=True
-    # )
-    crawl_and_send_to_kafka= PythonOperator(
-        task_id='crawl_and_send_to_kafka',
-        python_callable=crawl_and_send_to_kafka,
+    crawl_company_links_task= PythonOperator(
+        task_id='crawl_company_links',
+        python_callable=crawl_company_links,
         provide_context=True
     )
+    crawl_company_data_task= PythonOperator(
+        task_id='crawl_company_data',
+        python_callable=crawl_company_data,
+        provide_context=True
+    )
+    send_to_kafka_task= PythonOperator(
+        task_id='send_to_kafka',
+        python_callable=send_to_kafka,
+        provide_context=True
+    )
+    # crawl_and_send_to_kafka= PythonOperator(
+    #     task_id='crawl_and_send_to_kafka',
+    #     python_callable=crawl_and_send_to_kafka,
+    #     provide_context=True
+    # )
 
-    #crawl_page_links_task >> crawl_company_links_task>> crawl_company_data_task >> send_to_kafka_task
-    crawl_page_links_task >> crawl_and_send_to_kafka
+    crawl_page_links_task >> crawl_company_links_task>> crawl_company_data_task >> send_to_kafka_task
+    #crawl_page_links_task >> crawl_and_send_to_kafka
