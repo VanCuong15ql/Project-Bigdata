@@ -58,7 +58,8 @@ def crawl_company_links(**kwargs):
 
             time.sleep(3)
             
-            titles = driver.find_elements(By.CSS_SELECTOR, "h3.title a")
+            # titles = driver.find_elements(By.CSS_SELECTOR, "h3.title a")
+            titles = driver.find_elements(By.CSS_SELECTOR, "a.img_job_card")
             for title in titles:
                 company_links.append(title.get_attribute("href"))  
     except Exception as e:
@@ -70,8 +71,9 @@ def extract_sections(text):
     # Định nghĩa các mục cần tách
     headers = [
         "Mô tả công việc",
-        "Yêu cầu ứng viên",
-        "Quyền lợi",
+        "Yêu cầu công việc",
+        "Các phúc lợi dành cho bạn",
+        "Thông tin việc làm",
         "Địa điểm làm việc",
         "Thời gian làm việc",
         "Cách thức ứng tuyển"
@@ -105,25 +107,49 @@ def crawl_company_data(**kwargs):
             time.sleep(3)
 
             try:
-                name_element = driver.find_element(By.CSS_SELECTOR, "div.company-name-label a")
+                name_element = driver.find_element(By.CSS_SELECTOR, "div.sc-37577279-3.drWnZq a")
                 name = name_element.text.strip()
             except Exception as e:
                 print("Error: " + str(e))
                 name = "N/A"
+            # Mo ta cong viec + Yeu cau cong viec
             try:
-                job_description_element = driver.find_element(By.CSS_SELECTOR, "div.job-description")
+                job_description_element = driver.find_element(By.CSS_SELECTOR, "div.sc-1671001a-3.hmvhgA")
                 job_description = job_description_element.text.strip()
                 sections = extract_sections(job_description)
+                print('job_description',job_description)
             except Exception as e:
                 print("Error: " + str(e))
                 job_description = "N/A"
+            #Phuc loi
+            try:
+                job_description_element2 = driver.find_element(By.CSS_SELECTOR, "div.sc-c683181c-0.fRBraR")
+                job_description2 = job_description_element2.text.strip()
+                sections2 = extract_sections(job_description2)
+                print('job_description2',job_description2)
+            except Exception as e:
+                print("Error: " + str(e))
+                job_description2 = "N/A"
+            #Thong tin viec 
+            
+            # Dia diem lam viec
+            try:
+                job_description_element3 = driver.find_element(By.CSS_SELECTOR, "div.sc-a137b890-0.bAqPjv")
+                job_description3 = job_description_element3.text.strip()
+                sections3 = extract_sections(job_description3)
+                print('job_description3',job_description3)
+            except Exception as e:
+                print("Error: " + str(e))
+                job_description3 = "N/A"
+            
             company_data={
                 'id':time.time(),
                 'name': name,
+                'chuyen_mon': 'N/A',# This field is not extracted from the page
                 'mo_ta_cong_viec': sections.get("Mô tả công việc", "N/A"),
-                'yeu_cau_cong_viec': sections.get("Yêu cầu ứng viên", "N/A"),
-                'quyen_loi': sections.get("Quyền lợi", "N/A"),
-                'dia_diem_lam_viec': sections.get("Địa điểm làm việc", "N/A"),
+                'yeu_cau_cong_viec': sections.get("Yêu cầu công việc", "N/A"),
+                'quyen_loi': sections2.get("Các phúc lợi dành cho bạn", "N/A"),
+                'dia_diem_lam_viec': sections3.get("Địa điểm làm việc", "N/A"),
                 'thoi_gian_lam_viec': sections.get("Thời gian làm việc", "N/A"),
                 'cach_thuc_ung_tuyen': sections.get("Cách thức ứng tuyển", "N/A")
             }

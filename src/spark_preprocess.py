@@ -60,7 +60,7 @@ if __name__ == "__main__":
         
         print(df_clean.count())
         # write to hdfs, format json
-        df_clean.coalesce(1).write.mode("overwrite").json("hdfs://namenode:9000/data/cleaned/")
+        df_clean.coalesce(1).write.mode("overwrite").json("hdfs://namenode:9000/data/process/")
          
 
         

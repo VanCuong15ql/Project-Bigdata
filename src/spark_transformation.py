@@ -61,11 +61,11 @@ if __name__ == "__main__":
         print("extracted_recruit_df")
         extracted_recruit_df.printSchema()
         ##========save extracted_recruit_df to hdfs========================
-        # extracted_recruit_df.write\
-        #     .format("json")\
-        #     .mode("overwrite")\
-        #     .save("hdfs://namenode:9000/data/extracted_data/recruit.json")
-        # print("data send to hdfs")
+        extracted_recruit_df.write\
+            .format("json")\
+            .mode("overwrite")\
+            .save("hdfs://namenode:9000/data/extracted_data/recruit.json")
+        print("data send to hdfs")
         ##========save extracted_recruit_df to elasticsearch========================
         es_config ={
             "es.nodes": "elasticsearch",
