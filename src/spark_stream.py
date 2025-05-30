@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import from_json, col, regexp_replace, trim
+from pyspark.sql.functions import from_json, col, regexp_replace, trim, from_unixtime
 from pyspark.sql.types import *
 
 # Tạo SparkSession
@@ -48,6 +48,7 @@ df_clean = df_parsed.withColumn("mo_ta_cong_viec", regexp_replace(col("mo_ta_con
     .withColumn("quyen_loi", regexp_replace(col("quyen_loi"), r"\n+", " ")) \
     .withColumn("name", trim(col("name"))) \
     .withColumn("chuyen_mon", trim(col("chuyen_mon")))\
+    .withColumn("id", from_unixtime(col("ngay_dang_tin").cast("double"),"yyyy-MM-dd")) \
     
 # check df_clean
 df_clean.printSchema()

@@ -14,19 +14,19 @@ from bs4 import BeautifulSoup
 
 TIME_SLEEP = 3
 TIME_STREAM = 50
-START_PAGE=63
-END_PAGE=65
+START_PAGE=1
+END_PAGE=1
 fix=1
 
 
 # task 1: crawl link page
 
-# examble links https://www.topcv.vn/tim-viec-lam-cong-nghe-thong-tin-cr257?sort=up_top&type_keyword=0&page=2&category_family=r257&sba=
+# examble links https://www.topcv.vn/tim-viec-lam-cong-nghe-thong-tin-cr257?sort=new&type_keyword=0&page=2&category_family=r257&sba=
 def crawl_page_links(**kwargs):
     links=[]
     for i in range(START_PAGE, END_PAGE + 1):
         links.append(
-            "https://www.topcv.vn/tim-viec-lam-cong-nghe-thong-tin-cr257?sort=up_top&type_keyword=0&page="+str(i)+"&category_family=r257&sba="
+            "https://www.topcv.vn/tim-viec-lam-cong-nghe-thong-tin-cr257?sort=new&type_keyword=0&page="+str(i)+"&category_family=r257&sba="
         )
     print("links: " + str(links))
     kwargs['ti'].xcom_push(key='page_links', value=links)
@@ -45,7 +45,7 @@ def get_webdriver():
     return webdriver.Chrome(service=service, options=chrome_options)
 # task 2: crawl list company
 def crawl_company_links(**kwargs):
-    page_links = kwargs['ti'].xcom_pull(key='page_links', task_ids='crawl_page_links')
+    page_links = kwargs['ti'].xcom_pull(key='page_links', task_ids='create_page_links')
     company_links = []
 
     
@@ -56,18 +56,32 @@ def crawl_company_links(**kwargs):
             driver.get(link)
 
             time.sleep(3)
-       
+            count_new = 0
+            try:
+                dates=driver.find_elements(By.CSS_SELECTOR, "label.label-update")
+                for date in dates:
+                    if date.text.strip()=="Đăng hôm nay":
+                        count_new = count_new + 1
+             
+            except Exception as e:
+                print("Error:", str(e))
+                break
+            print("count_new:", count_new)
+          
             titles = driver.find_elements(By.CSS_SELECTOR, "h3.title a")
             for title in titles:
-                
+                if count_new <=0:
+                    break
                 company_links.append(title.get_attribute("href"))  
-               
-            driver.quit()
+                count_new -= 1
+            driver.quit()   
     except Exception as e:
         print("Error: " + str(e))
         driver.quit()
     finally:
         driver.quit()
+        
+    
     kwargs['ti'].xcom_push(key='company_links', value=company_links)
 def extract_sections(text):
     
@@ -97,7 +111,7 @@ def extract_sections(text):
 
 # task 3: crawl data company
 def crawl_company_data(**kwargs):
-    company_links = kwargs['ti'].xcom_pull(key='company_links', task_ids='crawl_company_links')
+    company_links = kwargs['ti'].xcom_pull(key='company_links', task_ids='crawl_job_links')
     job_data_list = []
     
     try:
@@ -152,14 +166,14 @@ def crawl_company_data(**kwargs):
         print("Error: " + str(e))
     finally:
         driver.quit()
-    kwargs['ti'].xcom_push(key='company_data', value=job_data_list)
+    kwargs['ti'].xcom_push(key='job_data', value=job_data_list)
 
 
 # Task 4: send data to kafka
 def send_to_kafka(**kwargs):
     
     producer = KafkaProducer(bootstrap_servers=['broker:29092'], max_block_ms=5000)
-    job_data_list = kwargs['ti'].xcom_pull(key='job_data', task_ids='crawl_company_data')
+    job_data_list = kwargs['ti'].xcom_pull(key='job_data', task_ids='crawl_job_data')
 
     for data in job_data_list:
         producer.send('recruitment_information', json.dumps(data).encode('utf-8'))
@@ -175,7 +189,7 @@ default_args = {
 }
 
 
-with DAG('stream_recruitment_information_thread1',
+with DAG('stream_newjob_information',
          default_args=default_args,
          description = "This is kafka stream task.",
          schedule_interval='@daily',
