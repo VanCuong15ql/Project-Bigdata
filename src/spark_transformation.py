@@ -15,6 +15,7 @@ import udfs
 schema_raw= StructType([
     StructField("id", StringType(), False),
     StructField("name", StringType(), False),
+    StructField("chuyen_mon", StringType(), False),
     StructField("mo_ta_cong_viec", StringType(), False),
     StructField("yeu_cau_cong_viec", StringType(), False),
     StructField("quyen_loi", StringType(), False),
