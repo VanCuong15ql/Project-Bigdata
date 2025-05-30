@@ -1,34 +1,80 @@
 # coding=utf-8
 from pyspark.sql.functions import udf
 from pyspark.sql.types import *
-import re, unicodedata
+import re, unicodedata, sys
 
 import math
 @udf(returnType=ArrayType(StringType()))
 def extract_framework_plattform(mo_ta_cong_viec,yeu_cau_ung_vien):
-    return [framework for framework in framework_plattforms if re.search(framework, mo_ta_cong_viec + " " + yeu_cau_ung_vien, re.IGNORECASE)]
+    text = (mo_ta_cong_viec or "") + " " + (yeu_cau_ung_vien or "")
+    result = []
+
+    for framework, keywords in framework_platforms.items():
+        search_terms = keywords
+        for keyword in search_terms:
+            pattern = r'\b' + re.escape(keyword) + r'(?=\W|$)'
+            if re.search(pattern, text, re.IGNORECASE):
+                result.append(framework)
+                break
+    return result
 
 @udf(returnType=ArrayType(StringType()))
-def extract_language(mo_ta_cong_viec,yeu_cau_ung_vien):
-    return [language for language in languages if re.search(language.replace("+", "\+").replace("(", "\(").replace(")", "\)"), mo_ta_cong_viec + " " + yeu_cau_ung_vien, re.IGNORECASE)]
+def extract_language(mo_ta_cong_viec, yeu_cau_ung_vien):
+    text = (mo_ta_cong_viec or '') + ' ' + (yeu_cau_ung_vien or '')
+    result = []
+
+    for language, keywords in languages.items():
+        search_terms = keywords
+        for keyword in search_terms:
+            pattern = r'\b' + re.escape(keyword) + r'(?=\W|$)'
+            if re.search(pattern, text, re.IGNORECASE):
+                result.append(language)
+                break
+    return result
 
 @udf(returnType=ArrayType(StringType()))
 def extract_knowledge(mo_ta_cong_viec,yeu_cau_ung_vien):
-    return [knowledge for knowledge in knowledges if re.search(knowledge, mo_ta_cong_viec + " " + yeu_cau_ung_vien, re.IGNORECASE)]
+    result = set()
+    text = (mo_ta_cong_viec or "") + " " + (yeu_cau_ung_vien or "")
 
-def broadcast_labeled_knowledges(sc,labeled_knowledges):
-    '''
-    broadcast the mapped of labeled_knowledges to group data in knowledge field
-    '''
-    global mapped_knowledge
-    mapped_knowledge = sc.broadcast(labeled_knowledges)
+    for group, keywords in knowledge_groups.items():
+        for keyword in keywords:
+            pattern = r'\b' + re.escape(keyword) + r'(?=\W|$)'
+            if re.search(pattern, text, re.IGNORECASE):
+                result.add(group)
+                break
+    return list(result)
 
-@udf(returnType=StringType())
-def labeling_knowledge(knowledge):
-    try :
-        return mapped_knowledge.value[knowledge]
-    except :
-        return None
+@udf(returnType=ArrayType(StringType()))
+def extract_workplace(dia_diem_lam_viec):
+    def remove_accents(text):
+        if text is None:
+            return ""
+        if sys.version_info[0] >= 3:
+            return ''.join(
+                c for c in unicodedata.normalize('NFD', text.decode('utf-8'))
+                if unicodedata.category(c) != 'Mn'
+            )
+        else:
+            if not isinstance(text, unicode):
+                text = unicode(text, 'utf-8')
+            return ''.join(
+                c for c in unicodedata.normalize('NFD', text)
+                if unicodedata.category(c) != 'Mn'
+            )
+    
+    result = set()
+    text = (dia_diem_lam_viec or "")
+    
+    for province, keywords in workplaces.items():
+        for keyword in keywords:
+            keyword_no_accent = remove_accents(keyword).lower()
+            pattern = r'\b' + re.escape(keyword_no_accent) + r'(?=\W|$)'
+            if re.search(pattern, remove_accents(text).encode('utf-8').lower()):
+                result.add(province)
+                break
+                
+    return list(result)
 
 @udf(returnType=ArrayType(StringType()))
 def extract_design_pattern(mo_ta_cong_viec,yeu_cau_ung_vien):
@@ -193,60 +239,139 @@ def normalize_salary(quyen_loi):
     return sorted(list(bin_set))
 
 
-framework_plattforms = ['Docker', 'OSP', 'Premiere', 'directAdmin', 'typography', 'Prometheus', 'visual weight', 'Kubernetes', 'JDBC', 'UnitTest',
-            'Servlets', 'cPanel', 'MySQL', '.NET', 'Ruby on Rails', 'JSP', 'IdentityServer', 'VoIP', 'AdobeXD', 'CMake', 'Autocad',
-            'Spring', 'Django', 'CRM', 'K8S', 'Nginx', 'firmware', 'Google Trend', 'psd', 'CSRF', 'Reactjs', 'Struts', 'WebSocket',
-            'Webpack', 'Spine', 'Vue', 'METEOR', 'Rancher', 'VFX', 'node js', 'Angular', 'Flask', 'ASP.NET', 'Google Analystics', 'Zend',
-            'Symfony', 'Express', 'Google Protobuf', 'J2EE', 'Ansible', 'WebForm', 'Videoscribe', 'CakePHP', 'Hibernate', 'Git', 'Oracle',
-            'Plesk', 'Log4j', 'JSON', 'Visio', 'Grafana', 'SDLC', ' EELinux', ' Redis', 'Redux', 'WinForm', 'Figma', 'CodeIgniter',
-            'Power BI', 'Bootstrap', 'WPF', 'Aerospike', 'bash shell', 'Laravel', 'SQL Server']
+design_patterns = ["MVC"," Singleton"," WPF", " MVVM","Session Facade", " DAO ", "OOA/OOD","Factory Pattern", 'Microservice']
 
-design_patterns=["design pattern","MVC"," Singleton"," WPF", " MVVM","Session Facade", " DAO ", "OOA/OOD","Factory Pattern",
-                'Microservice']
-
-knowledges = ['game', 'Jira', 'lắp đặt', 'interaction design', 'đồ họa', 'DevOps', ' AI ', ' async', 'Quality Assurance',
-               ' Security ', 'Google Drive', 'NFT', 'mạng máy tính', 'Wordpress', 'Machine Learning', 'Consult', 'White Box', 'sale',
-               'kiểm thử', 'đánh giá chất lượng', 'networking', 'distributed system', 'UI/UX', 'Windows', 'Unit Test',
-               'Jenkins', 'Chatbot', 'quản trị mạng', 'Solidity', 'tester', 'Corel Draw', 'Illustrator', 'Git', 'Android',
-               'Black Box', 'Office', 'chạy quảng cáo', 'Unix', 'IT Support', 'Data mining', 'data analys', 'cấu trúc dữ liệu', 'Switch',
-               ' TCP', 'qa', 'Animate', 'crypto', 'CI/CD', 'Defi', 'frontend', 'sửa chữa', 'SVN', 'phần cứng', ' sync',
-               'Powerpoint', 'smart contract', 'Linux', 'SCM', 'backend', 'Marketing', 'XSS', 'Photoshop', 'HTTP', 'Word', 'router', 'IOS',
-               'WebSocket', 'thuật toán', 'TestRail', 'CSDL', 'Sketch', 'blockchains', 'multithreading', 'hướng đối tượng', 'Front-end',
-
-               'latex', 'Restful', 'Subversion', 'java web', 'Mobile', 'Excel']
-knowledge_groups={
-    "blockchain_crypto":["blockchains","crypto","NFT","smart contract","Solidity", "Defi",'XSS', " Security " ]    ,
-    "office":["Word", "Excel","Powerpoint","Office"],
-    "AI":[" AI", "Machine Learning","Data mining", 'Chatbot',"data analys"],
-    "tester":["Black Box", "tester", 'White Box', "Unit Test",'TestRail', "kiểm thử"],
-    "programming_basic": ["cấu trúc dữ liệu","thuật toán","OOP","hướng đối tượng"],
-    "version_control":["SVN", "SCM","Git"],
-    "hard_ware":[ "lắp đặt", "sửa chữa", "phần cứng","router",'Corel Draw',"Switch"],
-    "photoshop": ["Illustrator","Photoshop","Animate"]
+workplaces = {
+    "An Giang": ["An Giang"],
+    "Ba Ria - Vung Tau": ["Bà Rịa", "Vũng Tàu"],
+    "Bac Lieu": ["Bạc Liêu"],
+    "Bac Giang": ["Bắc Giang"],
+    "Bac Kan": ["Bắc Kạn"],
+    "Bac Ninh": ["Bắc Ninh"],
+    "Ben Tre": ["Bến Tre"],
+    "Binh Duong": ["Bình Dương"],
+    "Binh Dinh": ["Bình Định"],
+    "Binh Phuoc": ["Bình Phước"],
+    "Binh Thuan": ["Bình Thuận"],
+    "Ca Mau": ["Cà Mau"],
+    "Cao Bang": ["Cao Bằng"],
+    "Can Tho": ["Cần Thơ"],
+    "Đa Nang": ["Đà Nẵng"],
+    "Dak Lak": ["Đắk Lắk"],
+    "Dak Nong": ["Đắk Nông"],
+    "Dien Bien": ["Điện Biên"],
+    "Dong Nai": ["Đồng Nai"],
+    "Dong Thap": ["Đồng Tháp"],
+    "Gia Lai": ["Gia Lai"],
+    "Ha Giang": ["Hà Giang"],
+    "Ha Nam": ["Hà Nam"],
+    "Ha Noi": ["Hà Nội", "ha noi", "hanoi"],
+    "Ha Tinh": ["Hà Tĩnh"],
+    "Hai Duong": ["Hải Dương"],
+    "Hai Phong": ["Hải Phòng"],
+    "Hau Giang": ["Hậu Giang"],
+    "TP. Ho Chi Minh": ["Hồ Chí Minh", "HCM", "TP HCM"],
+    "Hoa Binh": ["Hòa Bình"],
+    "Hung Yen": ["Hưng Yên"],
+    "Khanh Hoa": ["Khánh Hòa"],
+    "Kien Giang": ["Kiên Giang"],
+    "Kon Tum": ["Kon Tum"],
+    "Lai Chau": ["Lai Châu"],
+    "Lam Dong": ["Lâm Đồng"],
+    "Lang Son": ["Lạng Sơn"],
+    "Lao Cai": ["Lào Cai"],
+    "Long An": ["Long An"],
+    "Nam Dinh": ["Nam Định"],
+    "Nghe An": ["Nghệ An"],
+    "Ninh Binh": ["Ninh Bình"],
+    "Ninh Thuan": ["Ninh Thuận"],
+    "Phu Tho": ["Phú Thọ"],
+    "Phu Yen": ["Phú Yên"],
+    "Quang Binh": ["Quảng Bình"],
+    "Quang Nam": ["Quảng Nam"],
+    "Quang Ngai": ["Quảng Ngãi"],
+    "Quang Ninh": ["Quảng Ninh"],
+    "Quang Tri": ["Quảng Trị"],
+    "Soc Trang": ["Sóc Trăng"],
+    "Son La": ["Sơn La"],
+    "Tay Ninh": ["Tây Ninh"],
+    "Thai Binh": ["Thái Bình"],
+    "Thai Nguyen": ["Thái Nguyên"],
+    "Thanh Hoa": ["Thanh Hóa"],
+    "Thua Thien Hue": ["Thừa Thiên Huế"],
+    "Tien Giang": ["Tiền Giang"],
+    "Tra Vinh": ["Trà Vinh"],
+    "Tuyen Quang": ["Tuyên Quang"],
+    "Vinh Long": ["Vĩnh Long"],
+    "Vinh Phuc": ["Vĩnh Phúc"],
+    "Yen Bai": ["Yên Bái"]
 }
 
-labeled_knowledges={' AI': 'AI', 'Machine Learning': 'AI', 'Data mining': 'AI', 'Chatbot': 'AI', 'data analys': 'AI',
-                    'blockchains': 'blockchain_crypto', 'crypto': 'blockchain_crypto', 'NFT': 'blockchain_crypto',
-                    'smart contract': 'blockchain_crypto', 'Solidity': 'blockchain_crypto', 'Defi': 'blockchain_crypto',
-                    'XSS': 'blockchain_crypto', ' Security ': 'blockchain_crypto',
-                    'lắp đặt': 'hardware', 'sửa chữa': 'hardware', 'phần cứng': 'hardware', 'router': 'hardware',
-                    'Corel Draw': 'hardware', 'Switch': 'hardware',
-                    'Word': 'office', 'Excel': 'office', 'Powerpoint': 'office', 'Office': 'office',
-                    'Illustrator': 'photoshop', 'Photoshop': 'photoshop', 'Animate': 'photoshop',
-                    'cấu trúc dữ liệu': 'programming_basic', 'thuật toán': 'programming_basic', 'OOP': 'programming_basic',
-                    'hướng đối tượng': 'programming_basic',
-                    'Black Box': 'tester', 'tester': 'tester', 'White Box': 'tester', 'Unit Test': 'tester',
-                    'TestRail': 'tester', 'kiểm thử': 'tester',
-                    'SVN': 'version_control', 'SCM': 'version_control', 'Git': 'version_control'}
+framework_platforms = {
+    "Rails": ["Rails", "Ruby on Rails"],
+    "Spring": ["Spring", "Spring Boot"],
+    "Django": ["Django"],
+    "ReactJS": ["Reactjs", "React.js", "React"],
+    "Struts": ["Struts"],
+    "Webpack": ["Webpack"],
+    "Vue": ["Vue", "Vue.js"],
+    "Meteor": ["METEOR"],
+    "Rancher": ["Rancher"],
+    "Angular": ["Angular", "AngularJS"],
+    "Flask": ["Flask"],
+    "ASP.NET": ["ASP.NET", "ASP NET", "ASPNet", ".NET", "dotnet"],
+    "Zend": ["Zend"],
+    "Symfony": ["Symfony"],
+    "Express": ["Express", "ExpressJS", "Express.js"],
+    "Google Protobuf": ["Google Protobuf", "Protobuf"],
+    "CakePHP": ["CakePHP"],
+    "Hibernate": ["Hibernate"],
+    "Redux": ["Redux"],
+    "CodeIgniter": ["CodeIgniter"],
+    "Laravel": ["Laravel"]
+}
 
-languages = [' CHAIN ', ' ABAP ', 'Lingo', ' CPL', 'NPL', 'Xtend', ' Flex ', ' Io ', 'Erlang', 'Python', 'MSL', 'SAIL', ' Chef ', 'RPG', 'PHP',
-             'XPath', 'Lava', ' Clojure', 'Mathematica', 'QPL', 'Oak', 'Objective-C', 'P#', 'css', ' Delphi', ' A+ ', 'XQuery',
-             'CoffeeScript', ' SR ', 'ECMAScript', 'Nial', ' Red ', 'Mesa', 'LSL', 'T-SQL', 'E#', ' GAP ', 'Simula', 'Logo', ' Caml',
-             'JavaScript', 'PeopleCode', ' UNITY ', ' Blue ', 'Span', 'Lucid', ' BeanShell', ' CSP', 'Scheme', 'Swift', 'TypeScript',
-             ' Scala ', 'Scratch', 'Strand', 'XML', ' SAS', 'PortablE', 'JADE', ' C ', 'Processing', 'Pure', ' BASIC ', ' Bash', 'Pro*C',
-             'ROOP', 'PL/SQL', 'Icon', ' Dart', ' Factor ', 'Java', 'LINC', ' Go ', ' TIE ', ' Cool', 'Kotlin', 'Rust', 'Opa', 'DYNAMO',
-             ' Inform ', 'Mary', 'Ruby', 'YQL', 'Pike', ' rc ', ' html ', 'Oz', 'Groovy', 'PowerShell', ' CUDA', 'Hack', ' Self ',
-             ' CFEngine', 'C#', 'SPS']
+knowledge_groups = {
+    "Blockchain Crypto": ["blockchains", "crypto", "NFT", "smart contract", "Defi"],
+    "Microsoft Office": ["Word", "Excel", "Powerpoint", "Office"],
+    "AI": [" AI", "Machine Learning", "Data mining", "Chatbot", "data analys"],
+    "Tester": ["Black Box", "tester", "White Box", "Unit Test", "TestRail", "kiểm thử"],
+    "Version Control": ["SVN", "SCM", "Git"],
+    "Hardware": ["lắp đặt", "sửa chữa", "phần cứng", "router", "Corel Draw", "Switch"],
+    "Graphic": ["Illustrator", "Photoshop", "Animate", "UI/UX", "Sketch", "interaction design", "đồ họa"],
+    "Mobile": ["Android", "IOS", "Mobile"],
+    "Web": ["frontend", "backend", "java web", "Wordpress", "Front-end", "Restful"],
+    "Devops": ["DevOps", "Jenkins", "CI/CD", "distributed system", "multithreading", "async", "WebSocket"],
+    "Network": ["networking", "mạng máy tính", "quản trị mạng", "TCP", "HTTP"],
+    "Cyber Security": ["XSS", "cybersecurity", "cyber security", "an ninh mạng"],
+    "Marketing": ["sale", "Consult", "Marketing", "chạy quảng cáo", "đánh giá chất lượng"],
+    "Database": ["CSDL", "SQL", "MongoDB", "Database"],
+    "OS": ["Linux", "Windows", "macOS"],
+}
+
+languages = {
+    "Python": ["python"],
+    "PHP": ["php", "laravel", "symfony"],
+    "Red": ["red"],
+    "JavaScript": ["javascript", "js", "node.js", "nodejs", "vue.js", "react.js", "angular.js", "vuejs", "reactjs", "angularjs"],
+    "Swift": ["swift"],
+    "TypeScript": ["typescript", "ts"],
+    "Scala": ["scala"],
+    "Scratch": ["scratch"],
+    "C/C++": ["C/C++", "C++", "CPP", "c++"],
+    "Dart": ["dart", "flutter"],
+    "Java": ["java", "spring", "springboot"],
+    "Go": ["golang"],
+    "Kotlin": ["kotlin"],
+    "Rust": ["rust"],
+    "Opa": ["opa"],
+    "Ruby": ["ruby", "rails", "ruby on rails"],
+    "Groovy": ["groovy"],
+    "PowerShell": ["powershell"],
+    "CUDA": ["cuda"],
+    "Hack": ["hack"],
+    "C#": ["c#", "c sharp", ".net", "dotnet"]
+}
 
 salary_patterns = ["lương(?:từ| )+ ((?:\d+|\.)+)", "((?:\d+|\.|-| )+(?:triệu| )+)đồng",
                    "(?:\d|\.|,)+.000.000", "(?:\d+| |-)+\d+ *(?:triệu|m)", "\$(?:\d+|\.)", "(?:\d+|\.)+ *(?:USD|\$)+",
