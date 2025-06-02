@@ -51,7 +51,7 @@ if __name__ == "__main__":
     if spark_conn is not None:
         df_raw = spark_conn.read.schema(schema_raw).json("hdfs://namenode:9000/data/raw/*.json")
         df_raw.printSchema()
-        extracted_recruit_df = df_raw.select(df_raw["name"].alias("CompanyName"), 
+        extracted_recruit_df = df_raw.select(df_raw["name"].alias("CompanyName"), df_raw["chuyen_mon"].alias("Position"),
             udfs.extract_framework_plattform("mo_ta_cong_viec","yeu_cau_cong_viec").alias("FrameworkPlattforms"),
             udfs.extract_language("mo_ta_cong_viec","yeu_cau_cong_viec").alias("Languages"),
             udfs.extract_design_pattern("mo_ta_cong_viec","yeu_cau_cong_viec").alias("DesignPatterns"),

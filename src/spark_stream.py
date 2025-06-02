@@ -2,6 +2,7 @@
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import from_json, col, regexp_replace, trim, from_unixtime
 from pyspark.sql.types import *
+import udfs
 
 # Tạo SparkSession
 spark = SparkSession.builder \
@@ -43,12 +44,18 @@ df_parsed = df_raw.selectExpr("CAST(value AS STRING) as json_str") \
     .select("data.*")
 print(df_parsed)    
 # Làm sạch đơn giản (có thể mở rộng thêm)
-df_clean = df_parsed.withColumn("mo_ta_cong_viec", regexp_replace(col("mo_ta_cong_viec"), r"\n+", " ")) \
-    .withColumn("yeu_cau_cong_viec", regexp_replace(col("yeu_cau_cong_viec"), r"\n+", " ")) \
-    .withColumn("quyen_loi", regexp_replace(col("quyen_loi"), r"\n+", " ")) \
-    .withColumn("name", trim(col("name"))) \
-    .withColumn("chuyen_mon", trim(col("chuyen_mon")))\
-    .withColumn("id", from_unixtime(col("ngay_dang_tin").cast("double"),"yyyy-MM-dd")) \
+df_clean = df_parsed.select(
+    col("id"),
+    trim(col("name")).alias("name"),
+    trim(col("chuyen_mon")).alias("chuyen_mon"),
+    regexp_replace(col("mo_ta_cong_viec"), r"\n+", " ").alias("mo_ta_cong_viec"),
+    regexp_replace(col("yeu_cau_cong_viec"), r"\n+", " ").alias("yeu_cau_cong_viec"),
+    regexp_replace(col("quyen_loi"), r"\n+", " ").alias("quyen_loi"),
+    udfs.extract_workplace(col("dia_diem_lam_viec")).alias("dia_diem_lam_viec"),
+    col("thoi_gian_lam_viec"),
+    col("cach_thuc_ung_tuyen")
+)
+#    .withColumn("id", from_unixtime(col("ngay_dang_tin").cast("double"),"yyyy-MM-dd")) \
     
 # check df_clean
 df_clean.printSchema()

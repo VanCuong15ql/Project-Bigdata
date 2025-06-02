@@ -243,7 +243,7 @@ design_patterns = ["MVC"," Singleton"," WPF", " MVVM","Session Facade", " DAO ",
 
 workplaces = {
     "An Giang": ["An Giang"],
-    "Ba Ria - Vung Tau": ["Bà Rịa", "Vũng Tàu"],
+    "Ba Ria - Vung Tau": ["Bà Rịa - Vũng Tàu", "Bà Rịa", "Vũng Tàu"],
     "Bac Lieu": ["Bạc Liêu"],
     "Bac Giang": ["Bắc Giang"],
     "Bac Kan": ["Bắc Kạn"],
@@ -270,7 +270,7 @@ workplaces = {
     "Hai Duong": ["Hải Dương"],
     "Hai Phong": ["Hải Phòng"],
     "Hau Giang": ["Hậu Giang"],
-    "TP. Ho Chi Minh": ["Hồ Chí Minh", "HCM", "TP HCM"],
+    "TP. Ho Chi Minh": ["TP. Hồ Chí Minh", "Hồ Chí Minh", "HCM", "TP HCM"],
     "Hoa Binh": ["Hòa Bình"],
     "Hung Yen": ["Hưng Yên"],
     "Khanh Hoa": ["Khánh Hòa"],
